@@ -1,0 +1,479 @@
+<!doctype html>
+<!--
+  Material Design Lite
+  Copyright 2015 Google Inc. All rights reserved.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="A front-end template that helps you build fast, modern mobile web apps.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <title>wikipedia words similarity visualization</title>
+
+    <!-- Add to homescreen for Chrome on Android -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <link rel="icon" sizes="192x192" href="images/android-desktop.png">
+
+    <!-- Add to homescreen for Safari on iOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Material Design Lite">
+    <link rel="apple-touch-icon-precomposed" href="images/ios-desktop.png">
+
+    <!-- Tile icon for Win8 (144x144 + tile color) -->
+    <meta name="msapplication-TileImage" content="images/touch/ms-touch-icon-144x144-precomposed.png">
+    <meta name="msapplication-TileColor" content="#3372DF">
+
+    <link rel="shortcut icon" href="images/favicon.png">
+
+    <!-- SEO: If your mobile URL is different from the desktop URL, add a canonical link to the desktop page https://developers.google.com/webmasters/smartphone-sites/feature-phones -->
+    <!--
+    <link rel="canonical" href="http://www.example.com/">
+    -->
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:regular,bold,italic,thin,light,bolditalic,black,medium&amp;lang=en">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.2.1/material.cyan-light_blue.min.css">
+    <link rel="stylesheet" href="../stylesheets/dash-styles.css">
+    <style>
+    #view-source {
+      position: fixed;
+      display: block;
+      right: 0;
+      bottom: 0;
+      margin-right: 40px;
+      margin-bottom: 40px;
+      z-index: 900;
+    }
+    </style>
+    <style>
+       .link {
+           stroke: #2E2E2E;
+           stroke-width: 2px;
+       }
+
+       .node {
+           stroke: #fff;
+           stroke-width: 2px;
+       }
+       .textClass {
+           stroke: #323232;
+           font-family: "Lucida Grande", "Droid Sans", Arial, Helvetica, sans-serif;
+           font-weight: normal;
+           stroke-width: .5;
+           font-size: 14px;
+       }
+   </style>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+  </head>
+  <body>
+    <div class="demo-layout mdl-layout mdl-js-layout mdl-layout--fixed-drawer mdl-layout--fixed-header">
+      <header class="demo-header mdl-layout__header mdl-color--grey-100 mdl-color-text--grey-600">
+        <div class="mdl-layout__header-row">
+          <span class="mdl-layout-title">wikipedia words similarity visualization</span>
+          <div class="mdl-layout-spacer"></div>
+          <div class="mdl-textfield mdl-js-textfield mdl-textfield--expandable">
+            <label class="mdl-button mdl-js-button mdl-button--icon" for="search">
+              <i class="material-icons">search</i>
+            </label>
+            <div class="mdl-textfield__expandable-holder">
+              <input class="mdl-textfield__input" type="text" id="search">
+              <label class="mdl-textfield__label" for="search">Enter your query...</label>
+            </div>
+          </div>
+          <button class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--icon" id="hdrbtn">
+            <i class="material-icons">more_vert</i>
+          </button>
+          <ul class="mdl-menu mdl-js-menu mdl-js-ripple-effect mdl-menu--bottom-right" for="hdrbtn">
+            <li class="mdl-menu__item">About</li>
+            <li class="mdl-menu__item">Contact</li>
+            <li class="mdl-menu__item">Legal information</li>
+          </ul>
+        </div>
+      </header>
+      <div class="demo-drawer mdl-layout__drawer mdl-color--blue-grey-900 mdl-color-text--blue-grey-50">
+        <header class="demo-drawer-header">
+          <img src="../images/user.jpg" class="demo-avatar">
+          <div class="demo-avatar-dropdown">
+            <span>hello@example.com</span>
+            <div class="mdl-layout-spacer"></div>
+            <button id="accbtn" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-button--icon">
+              <i class="material-icons" role="presentation">arrow_drop_down</i>
+              <span class="visuallyhidden">Accounts</span>
+            </button>
+            <ul class="mdl-menu mdl-menu--bottom-right mdl-js-menu mdl-js-ripple-effect" for="accbtn">
+              <li class="mdl-menu__item">hello@example.com</li>
+              <li class="mdl-menu__item">info@example.com</li>
+              <li class="mdl-menu__item"><i class="material-icons">add</i>Add another account...</li>
+            </ul>
+          </div>
+        </header>
+        <nav class="demo-navigation mdl-navigation mdl-color--blue-grey-800">
+          <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">home</i>Home</a>
+          <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">inbox</i>Inbox</a>
+          <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">delete</i>Trash</a>
+          <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">report</i>Spam</a>
+          <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">forum</i>Forums</a>
+          <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">flag</i>Updates</a>
+          <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">local_offer</i>Promos</a>
+          <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">shopping_cart</i>Purchases</a>
+          <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">people</i>Social</a>
+          <div class="mdl-layout-spacer"></div>
+          <a class="mdl-navigation__link" href=""><i class="mdl-color-text--blue-grey-400 material-icons" role="presentation">help_outline</i><span class="visuallyhidden">Help</span></a>
+        </nav>
+      </div>
+      <main class="mdl-layout__content mdl-color--grey-100">
+        <button onclick="addNodes()">Restart Animation</button>
+        <script>
+            var graph;
+            function myGraph() {
+
+                // Add and remove elements on the graph object
+                this.addNode = function (id) {
+                    nodes.push({"id": id});
+                    update();
+                };
+
+                this.removeNode = function (id) {
+                    var i = 0;
+                    var n = findNode(id);
+                    while (i < links.length) {
+                        if ((links[i]['source'] == n) || (links[i]['target'] == n)) {
+                            links.splice(i, 1);
+                        }
+                        else i++;
+                    }
+                    nodes.splice(findNodeIndex(id), 1);
+                    update();
+                };
+
+                this.removeLink = function (source, target) {
+                    for (var i = 0; i < links.length; i++) {
+                        if (links[i].source.id == source && links[i].target.id == target) {
+                            links.splice(i, 1);
+                            break;
+                        }
+                    }
+                    update();
+                };
+
+                this.removeallLinks = function () {
+                    links.splice(0, links.length);
+                    update();
+                };
+
+                this.removeAllNodes = function () {
+                    nodes.splice(0, links.length);
+                    update();
+                };
+
+                this.addLink = function (source, target, value) {
+                    links.push({"source": findNode(source), "target": findNode(target), "value": value});
+                    update();
+                };
+
+                var findNode = function (id) {
+                    for (var i in nodes) {
+                        if (nodes[i]["id"] === id) return nodes[i];
+                    }
+                    ;
+                };
+
+                var findNodeIndex = function (id) {
+                    for (var i = 0; i < nodes.length; i++) {
+                        if (nodes[i].id == id) {
+                            return i;
+                        }
+                    }
+                    ;
+                };
+
+                // set up the D3 visualisation in the specified element
+                var w = 960,
+                        h = 450;
+
+                var color = d3.scale.category10();
+
+                var vis = d3.select("main")
+                        .append("svg:svg")
+                        .attr("width", w)
+                        .attr("height", h)
+                        .attr("id", "svg")
+                        .attr("pointer-events", "all")
+                        .attr("viewBox", "0 0 " + w + " " + h)
+                        .attr("perserveAspectRatio", "xMinYMid")
+                        .append('svg:g');
+
+                var force = d3.layout.force();
+
+                var nodes = force.nodes(),
+                        links = force.links();
+
+                var update = function () {
+                    var link = vis.selectAll("line")
+                            .data(links, function (d) {
+                                return d.source.id + "-" + d.target.id;
+                            });
+
+                    link.enter().append("line")
+                            .attr("id", function (d) {
+                                return d.source.id + "-" + d.target.id;
+                            })
+                            .attr("stroke-width", function (d) {
+                                return d.value / 10;
+                            })
+                            .attr("class", "link");
+                    link.append("title")
+                            .text(function (d) {
+                                return d.value;
+                            });
+                    link.exit().remove();
+
+                    var node = vis.selectAll("g.node")
+                            .data(nodes, function (d) {
+                                return d.id;
+                            });
+
+                    var nodeEnter = node.enter().append("g")
+                            .attr("class", "node")
+                            .call(force.drag);
+
+                    nodeEnter.append("svg:circle")
+                            .attr("r", 12)
+                            .attr("id", function (d) {
+                                return "Node;" + d.id;
+                            })
+                            .attr("class", "nodeStrokeClass")
+                            .attr("fill", function(d) { return color(d.id); });
+
+                    nodeEnter.append("svg:text")
+                            .attr("class", "textClass")
+                            .attr("x", 14)
+                            .attr("y", ".31em")
+                            .text(function (d) {
+                                return d.id;
+                            });
+
+                    node.exit().remove();
+
+                    force.on("tick", function () {
+
+                        node.attr("transform", function (d) {
+                            return "translate(" + d.x + "," + d.y + ")";
+                        });
+
+                        link.attr("x1", function (d) {
+                            return d.source.x;
+                        })
+                                .attr("y1", function (d) {
+                                    return d.source.y;
+                                })
+                                .attr("x2", function (d) {
+                                    return d.target.x;
+                                })
+                                .attr("y2", function (d) {
+                                    return d.target.y;
+                                });
+                    });
+
+                    // Restart the force layout.
+                    force
+                            .gravity(.01)
+                            .charge(-80000)
+                            .friction(0)
+                            .linkDistance( function(d) { return d.value * 10 } )
+                            .size([w, h])
+                            .start();
+                };
+
+
+                // Make it all go
+                update();
+            }
+
+            function drawGraph() {
+
+                graph = new myGraph("#svgdiv");
+
+
+                graph.addNode('Sophia');
+                graph.addNode('Daniel');
+                graph.addNode('Ryan');
+                graph.addNode('Lila');
+                graph.addNode('Suzie');
+                graph.addNode('Riley');
+                graph.addNode('Grace');
+                graph.addNode('Dylan');
+                graph.addNode('Mason');
+                graph.addNode('Emma');
+                graph.addNode('Alex');
+                graph.addLink('Alex', 'Ryan', '20');
+                graph.addLink('Sophia', 'Ryan', '20');
+                graph.addLink('Daniel', 'Ryan', '20');
+                graph.addLink('Ryan', 'Lila', '30');
+                graph.addLink('Lila', 'Suzie', '20');
+                graph.addLink('Suzie', 'Riley', '10');
+                graph.addLink('Suzie', 'Grace', '30');
+                graph.addLink('Grace', 'Dylan', '10');
+                graph.addLink('Dylan', 'Mason', '20');
+                graph.addLink('Dylan', 'Emma', '20');
+                graph.addLink('Emma', 'Mason', '10');
+                keepNodesOnTop();
+
+                // callback for the changes in the network
+                var step = -1;
+                function nextval()
+                {
+                    step++;
+                    return 2000 + (1500*step); // initial time, wait time
+                }
+
+                setTimeout(function() {
+                    graph.addLink('Alex', 'Sophia', '20');
+                    keepNodesOnTop();
+                }, nextval());
+
+                setTimeout(function() {
+                    graph.addLink('Sophia', 'Daniel', '20');
+                    keepNodesOnTop();
+                }, nextval());
+
+                setTimeout(function() {
+                    graph.addLink('Daniel', 'Alex', '20');
+                    keepNodesOnTop();
+                }, nextval());
+
+                setTimeout(function() {
+                    graph.addLink('Suzie', 'Daniel', '30');
+                    keepNodesOnTop();
+                }, nextval());
+
+                setTimeout(function() {
+                    graph.removeLink('Dylan', 'Mason');
+                    graph.addLink('Dylan', 'Mason', '8');
+                    keepNodesOnTop();
+                }, nextval());
+
+                setTimeout(function() {
+                    graph.removeLink('Dylan', 'Emma');
+                    graph.addLink('Dylan', 'Emma', '8');
+                    keepNodesOnTop();
+                }, nextval());
+
+            }
+
+            drawGraph();
+
+            // because of the way the network is created, nodes are created first, and links second,
+            // so the lines were on top of the nodes, this just reorders the DOM to put the svg:g on top
+            function keepNodesOnTop() {
+                $(".nodeStrokeClass").each(function( index ) {
+                    var gnode = this.parentNode;
+                    gnode.parentNode.appendChild(gnode);
+                });
+            }
+            function addNodes() {
+                d3.select("svg")
+                        .remove();
+                 drawGraph();
+            }
+
+
+        </script>
+        <!--<div class="mdl-grid demo-content">
+          <div class="demo-charts mdl-color--white mdl-shadow--2dp mdl-cell mdl-cell--12-col mdl-grid">
+            <svg fill="currentColor" width="200px" height="200px" viewBox="0 0 1 1" class="demo-chart mdl-cell mdl-cell--4-col mdl-cell--3-col-desktop">
+              <use xlink:href="#piechart" mask="url(#piemask)" />
+              <text x="0.5" y="0.5" font-family="Roboto" font-size="0.3" fill="#888" text-anchor="middle" dy="0.1">82<tspan font-size="0.2" dy="-0.07">%</tspan></text>
+            </svg>
+            <svg fill="currentColor" width="200px" height="200px" viewBox="0 0 1 1" class="demo-chart mdl-cell mdl-cell--4-col mdl-cell--3-col-desktop">
+              <use xlink:href="#piechart" mask="url(#piemask)" />
+              <text x="0.5" y="0.5" font-family="Roboto" font-size="0.3" fill="#888" text-anchor="middle" dy="0.1">82<tspan dy="-0.07" font-size="0.2">%</tspan></text>
+            </svg>
+            <svg fill="currentColor" width="200px" height="200px" viewBox="0 0 1 1" class="demo-chart mdl-cell mdl-cell--4-col mdl-cell--3-col-desktop">
+              <use xlink:href="#piechart" mask="url(#piemask)" />
+              <text x="0.5" y="0.5" font-family="Roboto" font-size="0.3" fill="#888" text-anchor="middle" dy="0.1">82<tspan dy="-0.07" font-size="0.2">%</tspan></text>
+            </svg>
+            <svg fill="currentColor" width="200px" height="200px" viewBox="0 0 1 1" class="demo-chart mdl-cell mdl-cell--4-col mdl-cell--3-col-desktop">
+              <use xlink:href="#piechart" mask="url(#piemask)" />
+              <text x="0.5" y="0.5" font-family="Roboto" font-size="0.3" fill="#888" text-anchor="middle" dy="0.1">82<tspan dy="-0.07" font-size="0.2">%</tspan></text>
+            </svg>
+          </div>
+          <div class="demo-graphs mdl-shadow--2dp mdl-color--white mdl-cell mdl-cell--8-col">
+            <svg fill="currentColor" viewBox="0 0 500 250" class="demo-graph">
+              <use xlink:href="#chart" />
+            </svg>
+            <svg fill="currentColor" viewBox="0 0 500 250" class="demo-graph">
+              <use xlink:href="#chart" />
+            </svg>
+          </div>
+          <div class="demo-cards mdl-cell mdl-cell--4-col mdl-cell--8-col-tablet mdl-grid mdl-grid--no-spacing">
+            <div class="demo-updates mdl-card mdl-shadow--2dp mdl-cell mdl-cell--4-col mdl-cell--4-col-tablet mdl-cell--12-col-desktop">
+              <div class="mdl-card__title mdl-card--expand mdl-color--teal-300">
+                <h2 class="mdl-card__title-text">Updates</h2>
+              </div>
+              <div class="mdl-card__supporting-text mdl-color-text--grey-600">
+                Non dolore elit adipisicing ea reprehenderit consectetur culpa.
+              </div>
+              <div class="mdl-card__actions mdl-card--border">
+                <a href="#" class="mdl-button mdl-js-button mdl-js-ripple-effect">Read More</a>
+              </div>
+            </div>
+            <div class="demo-separator mdl-cell--1-col"></div>
+            <div class="demo-options mdl-card mdl-color--deep-purple-500 mdl-shadow--2dp mdl-cell mdl-cell--4-col mdl-cell--3-col-tablet mdl-cell--12-col-desktop">
+              <div class="mdl-card__supporting-text mdl-color-text--blue-grey-50">
+                <h3>View options</h3>
+                <ul>
+                  <li>
+                    <label for="chkbox1" class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect">
+                      <input type="checkbox" id="chkbox1" class="mdl-checkbox__input">
+                      <span class="mdl-checkbox__label">Click per object</span>
+                    </label>
+                  </li>
+                  <li>
+                    <label for="chkbox2" class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect">
+                      <input type="checkbox" id="chkbox2" class="mdl-checkbox__input">
+                      <span class="mdl-checkbox__label">Views per object</span>
+                    </label>
+                  </li>
+                  <li>
+                    <label for="chkbox3" class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect">
+                      <input type="checkbox" id="chkbox3" class="mdl-checkbox__input">
+                      <span class="mdl-checkbox__label">Objects selected</span>
+                    </label>
+                  </li>
+                  <li>
+                    <label for="chkbox4" class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect">
+                      <input type="checkbox" id="chkbox4" class="mdl-checkbox__input">
+                      <span class="mdl-checkbox__label">Objects viewed</span>
+                    </label>
+                  </li>
+                </ul>
+              </div>
+              <div class="mdl-card__actions mdl-card--border">
+                <a href="#" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-color-text--blue-grey-50">Change location</a>
+                <div class="mdl-layout-spacer"></div>
+                <i class="material-icons">location_on</i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>-->
+    <script src="https://code.getmdl.io/1.2.1/material.min.js"></script>
+  </body>
+</html>
