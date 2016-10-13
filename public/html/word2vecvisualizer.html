@@ -1,0 +1,385 @@
+<!Doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://use.fontawesome.com/a2a2331240.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <link rel="stylesheet" href="https://code.getmdl.io/1.2.1/material.indigo-pink.min.css">
+  <script defer src="https://code.getmdl.io/1.2.1/material.min.js"></script>
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+  <style>
+  #view-source {
+    position: fixed;
+    display: block;
+    right: 0;
+    bottom: 0;
+    margin-right: 40px;
+    margin-bottom: 40px;
+    z-index: 900;
+  }
+  </style>
+  <style>
+     .link {
+         stroke: #2E2E2E;
+         stroke-width: 2px;
+     }
+
+     .node {
+         stroke: #fff;
+         stroke-width: 2px;
+     }
+     .textClass {
+         stroke: #323232;
+         font-family: "Lucida Grande", "Droid Sans", Arial, Helvetica, sans-serif;
+         font-weight: normal;
+         stroke-width: .5;
+         font-size: 14px;
+     }
+  </style>
+  <script>
+  query_data = {};
+  result_data = {};
+    $(document).ready(function(){
+      $('.search-button').click(function(){
+          var dialog = document.querySelector('dialog');
+          dialog.showModal();
+      });
+      $('.mdl-button-close').click(function(){
+        var dialog = document.querySelector('dialog');
+        dialog.close();
+      });
+      $('.mdl-button-search').click(function(){
+        positive_list = $('#positive').val().split(" ");
+        negative_list = $('#negative').val().split(" ");
+
+        query_data = $.param({
+          positive: positive_list,
+          negative: negative_list
+        });
+
+        $.getJSON('http://192.168.0.36:8000/similarity/',
+              decodeURIComponent(query_data),
+              function(result){
+                if(negative_list[0] == ''){
+                  query_str = positive_list.join("+");
+                }
+                else{
+                  query_str = positive_list.join("+") + "-" + negative_list.join("-");
+                }
+                result[query_str] = 0;
+                result_data = result;
+                addNodes();
+        });
+        var dialog = document.querySelector('dialog');
+        dialog.close();
+      });
+    });
+
+    /**
+    ******************************************************************************************************************
+    ******************************************************************************************************************
+    ******************************************************************************************************************
+    below is code for D3 visualization
+    ******************************************************************************************************************
+    ******************************************************************************************************************
+    ******************************************************************************************************************
+    ***/
+
+    var graph;
+    function myGraph() {
+
+        // Add and remove elements on the graph object
+        this.addNode = function (id) {
+            nodes.push({"id": id});
+            update();
+        };
+
+        this.removeNode = function (id) {
+            var i = 0;
+            var n = findNode(id);
+            while (i < links.length) {
+                if ((links[i]['source'] == n) || (links[i]['target'] == n)) {
+                    links.splice(i, 1);
+                }
+                else i++;
+            }
+            nodes.splice(findNodeIndex(id), 1);
+            update();
+        };
+
+        this.removeLink = function (source, target) {
+            for (var i = 0; i < links.length; i++) {
+                if (links[i].source.id == source && links[i].target.id == target) {
+                    links.splice(i, 1);
+                    break;
+                }
+            }
+            update();
+        };
+
+        this.removeallLinks = function () {
+            links.splice(0, links.length);
+            update();
+        };
+
+        this.removeAllNodes = function () {
+            nodes.splice(0, links.length);
+            update();
+        };
+
+        this.addLink = function (source, target, value) {
+            links.push({"source": findNode(source), "target": findNode(target), "value": value});
+            update();
+        };
+
+        var findNode = function (id) {
+            for (var i in nodes) {
+                if (nodes[i]["id"] === id) return nodes[i];
+            }
+            ;
+        };
+
+        var findNodeIndex = function (id) {
+            for (var i = 0; i < nodes.length; i++) {
+                if (nodes[i].id == id) {
+                    return i;
+                }
+            }
+            ;
+        };
+
+        // set up the D3 visualisation in the specified element
+        var w = 960,
+                h = 600;
+
+        var color = d3.scale.category10();
+
+        var vis = d3.select("main")
+                .append("svg:svg")
+                .attr("width", w)
+                .attr("height", h)
+                .attr("id", "svg")
+                .attr("pointer-events", "all")
+                .attr("viewBox", "0 0 " + w + " " + h)
+                .attr("perserveAspectRatio", "xMinYMid")
+                .append('svg:g');
+
+        var force = d3.layout.force();
+
+        var nodes = force.nodes(),
+                links = force.links();
+
+        var update = function () {
+            var link = vis.selectAll("line")
+                    .data(links, function (d) {
+                        return d.source.id + "-" + d.target.id;
+                    });
+
+            link.enter().append("line")
+                    .attr("id", function (d) {
+                        return d.source.id + "-" + d.target.id;
+                    })
+                    .attr("stroke-width", function (d) {
+                        return d.value / 10;
+                    })
+                    .attr("class", "link");
+            link.append("title")
+                    .text(function (d) {
+                        return d.value;
+                    });
+            link.exit().remove();
+
+            var node = vis.selectAll("g.node")
+                    .data(nodes, function (d) {
+                        return d.id;
+                    });
+
+            var nodeEnter = node.enter().append("g")
+                    .attr("class", "node")
+                    .call(force.drag);
+
+            nodeEnter.append("svg:circle")
+                    .attr("r", 12)
+                    .attr("id", function (d) {
+                        return "Node;" + d.id;
+                    })
+                    .attr("class", "nodeStrokeClass")
+                    .attr("fill", function(d) { return color(d.id); });
+
+            nodeEnter.append("svg:text")
+                    .attr("class", "textClass")
+                    .attr("x", 14)
+                    .attr("y", ".31em")
+                    .text(function (d) {
+                        return d.id;
+                    });
+
+            node.exit().remove();
+
+            force.on("tick", function () {
+
+                node.attr("transform", function (d) {
+                    return "translate(" + d.x + "," + d.y + ")";
+                });
+
+                link.attr("x1", function (d) {
+                    return d.source.x;
+                })
+                        .attr("y1", function (d) {
+                            return d.source.y;
+                        })
+                        .attr("x2", function (d) {
+                            return d.target.x;
+                        })
+                        .attr("y2", function (d) {
+                            return d.target.y;
+                        });
+            });
+
+            // Restart the force layout.
+            force
+                    .gravity(.01)
+                    .charge(-80000)
+                    .friction(0)
+                    .linkDistance( function(d) { return d.value * 8 } )
+                    .size([w, h])
+                    .start();
+        };
+
+
+        // Make it all go
+        update();
+    }
+
+    function drawGraph() {
+
+        graph = new myGraph("#svgdiv");
+
+        query_str = '';
+        for(key in result_data){
+          graph.addNode(key);
+          if(result_data[key] == 0){
+            query_str = key;
+          }
+        }
+
+        var weight = $('.myslider').val();
+        for(key in result_data){
+          graph.addLink(query_str, key, Math.exp((1- result_data[key]) * weight));
+        }
+
+        keepNodesOnTop();
+
+        // callback for the changes in the network
+        /**var step = -1;
+        function nextval()
+        {
+            step++;
+            return 2000 + (1500*step); // initial time, wait time
+        }
+
+        setTimeout(function() {
+            graph.addLink('Alex', 'Sophia', '20');
+            keepNodesOnTop();
+        }, nextval());
+
+        setTimeout(function() {
+            graph.addLink('Sophia', 'Daniel', '20');
+            keepNodesOnTop();
+        }, nextval());
+
+        setTimeout(function() {
+            graph.addLink('Daniel', 'Alex', '20');
+            keepNodesOnTop();
+        }, nextval());
+
+        setTimeout(function() {
+            graph.addLink('Suzie', 'Daniel', '30');
+            keepNodesOnTop();
+        }, nextval());
+
+        setTimeout(function() {
+            graph.removeLink('Dylan', 'Mason');
+            graph.addLink('Dylan', 'Mason', '8');
+            keepNodesOnTop();
+        }, nextval());
+
+        setTimeout(function() {
+            graph.removeLink('Dylan', 'Emma');
+            graph.addLink('Dylan', 'Emma', '8');
+            keepNodesOnTop();
+        }, nextval());**/
+
+    }
+
+    //drawGraph();
+
+    // because of the way the network is created, nodes are created first, and links second,
+    // so the lines were on top of the nodes, this just reorders the DOM to put the svg:g on top
+    function keepNodesOnTop() {
+        $(".nodeStrokeClass").each(function( index ) {
+            var gnode = this.parentNode;
+            gnode.parentNode.appendChild(gnode);
+        });
+    }
+    function addNodes() {
+        d3.select("svg")
+                .remove();
+         drawGraph();
+    }
+  </script>
+</head>
+<body>
+  <!-- Uses a header that scrolls with the text, rather than staying
+    locked at the top -->
+  <dialog class="mdl-dialog">
+    <h5 class="mdl-dialog__title">조회할 단어를 입력하세요</h5>
+    <div class="mdl-dialog__content">
+      <form>
+        <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+          <input class="mdl-textfield__input" type="text" id="positive">
+          <label class="mdl-textfield__label" for="positive">Positive</label>
+        </div>
+        <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+          <input class="mdl-textfield__input" type="text" id="negative">
+          <label class="mdl-textfield__label" for="negative">Negative</label>
+        </div>
+      </form>
+    </div>
+    <div class="mdl-dialog__actions">
+      <button type="button" class="mdl-button mdl-button-close mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--colored">취소</button>
+      <button type="button" class="mdl-button mdl-button-search mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">검색</button>
+    </div>
+  </dialog>
+  <div class="mdl-layout mdl-js-layout">
+    <header class="mdl-layout__header mdl-layout__header--scroll">
+      <div class="mdl-layout__header-row">
+        <!-- Title -->
+        <span class="mdl-layout-title">Word2vec Visualizer</span>
+        <!-- Add spacer, to align navigation to the right -->
+        <div class="mdl-layout-spacer"></div>
+        <!-- Navigation -->
+
+        <div>
+          <button onclick="addNodes()" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">
+            Redraw Graph
+          </button>
+          <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent search-button">
+            검색
+          </button>
+        </div>
+      </div>
+    </header>
+    <main class="mdl-layout__content">
+      <div class="page-content"><!-- Your content goes here -->
+        <div>
+          <p style="width:300px">
+            <input onchange='addNodes()' class="mdl-layout__content mdl-slider mdl-js-slider myslider" id='weight-slider' type="range" min="1" max="40" value="13" tabindex="0">
+          </p>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
